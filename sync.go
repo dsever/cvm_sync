@@ -5,65 +5,68 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"reflect"
 	"strings"
 )
 
-func ReturnValueFromPointer(pointer *string) string {
-
-	if pointer != nil {
-		return *pointer
-	}
-	return ""
-}
-
-func CheckMandatoryArgument() error {
+func CheckMandatoryArgument(conf *Config) error {
 	//Arguments can be provided by command line or environment variable
-	requiredItems := [...]string{"cvmtoken", "cvmaddress", "idmtoken", "idmaddress"}
+	requiredItems := [...]string{"Cvmtoken", "Cvmaddress", "Idmtoken", "Idmaddress"}
 	envPrefix := "CVM_"
 
+	e := reflect.ValueOf(conf).Elem()
+
 	for s := range requiredItems {
-		found := false
-		name := requiredItems[s]
-		flag.Visit(func(f *flag.Flag) {
-			if f.Name == name {
-				found = true
-			}
-		})
-		if !found {
-			key := fmt.Sprintf("%s%s", envPrefix, strings.ToUpper(name))
+		va := e.FieldByName(requiredItems[s])
+		if va.IsZero() {
+			key := fmt.Sprintf("%s%s", envPrefix, strings.ToUpper(requiredItems[s]))
 			val, present := os.LookupEnv(key)
-			fmt.Println(key)
 			if present {
-				flag.Set(name, val)
+				e.FieldByName(requiredItems[s]).Set(reflect.ValueOf(val))
 			} else {
-				return errors.New(fmt.Sprintf("Mandatory argument %s not found", name))
+				return errors.New(fmt.Sprintf("Mandatory argument %s not found", strings.ToLower(requiredItems[s])))
+
 			}
 		}
 	}
 	return nil
 }
 
-func main() {
+type Config struct {
+	Cvmtoken   string
+	Cvmaddress string
+	dryrun     bool
+	Idmtoken   string
+	Idmaddress string
+}
+
+func ParseFlags(progname string, args []string, cfg *Config) (err error) {
 	fmt.Println("Staring process of syncronization")
-	strnill := ""
-	cvmtoken := flag.String("cvmtoken", "", "CVM token")
-	cvmaddress := flag.String("cvmaddress", "", "CVM portal Address")
-	cvmmode := flag.Bool("dryrun", true, "Dry run")
-	idmtoken := flag.String("idmtoken", "", "IDM token")
-	idmaddress := flag.String("idmaddress", "", "IDM address")
+	flagSet := flag.NewFlagSet("ArgFlagset", flag.ContinueOnError)
+	var config = cfg
 
-	flag.Parse()
+	flagSet.StringVar(&config.Cvmtoken, "cvmtoken", "", "CVM token")
+	flagSet.StringVar(&config.Cvmaddress, "cvmaddress", "", "CVM portal Address")
+	flagSet.BoolVar(&config.dryrun, "dryrun", true, "Dry run")
+	flagSet.StringVar(&config.Idmtoken, "idmtoken", "", "IDM token")
+	flagSet.StringVar(&config.Idmaddress, "idmaddress", "", "IDM address")
 
-	if ReturnValueFromPointer(cvmtoken) == strnill {
-		fmt.Println("CVM Token not defined")
-		flag.PrintDefaults()
-
+	err = flagSet.Parse(os.Args[1:])
+	if err != nil {
+		flagSet.PrintDefaults()
+		return fmt.Errorf("Please try again")
 	}
-	fmt.Println(CheckMandatoryArgument())
-	fmt.Println(*cvmtoken)
-	fmt.Println(*cvmmode)
-	fmt.Println(*cvmaddress)
-	fmt.Println(*idmtoken)
-	fmt.Println(*idmaddress)
-	fmt.Println(CheckMandatoryArgument())
+
+	return nil
+
+}
+
+func main() {
+	var cfg Config
+	ParseFlags(os.Args[0], os.Args[1:], &cfg)
+	err := CheckMandatoryArgument(&cfg)
+	if err == nil {
+		fmt.Println("ok")
+	}
+
 }
