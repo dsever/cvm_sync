@@ -12,13 +12,15 @@ func TestCheckMandatoryArgument(t *testing.T) {
 		args    []string
 		wantErr bool
 	}{
-		{[]string{"-cvmtoken testme -cvmaddress test123 -idmaddress idmaddress -idmtoken idmtoken"},
-			false},
+		{
+			[]string{"-cvmtoken", "testme", "-cvmaddress", "test123", "-idmaddress", "idmaddress", "-idmtoken", "idmtoken"},
+			false}, {
+			[]string{"-cvMtoken", "testme", "-cvmaddress", "test123", "-idmaddress", "idmaddress", "-idmtoken", "idmtoken"},
+			true},
 	}
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
 			var cfg Config
-			fmt.Println(strings.Join(tt.args, " "))
 			err := ParseFlags("prog", tt.args, &cfg)
 			if err != nil {
 				fmt.Println("Error")

@@ -42,7 +42,7 @@ type Config struct {
 
 func ParseFlags(progname string, args []string, cfg *Config) (err error) {
 	fmt.Println("Staring process of syncronization")
-	flagSet := flag.NewFlagSet("ArgFlagset", flag.ContinueOnError)
+	flagSet := flag.NewFlagSet("ArgFlagset", flag.ExitOnError)
 	var config = cfg
 
 	flagSet.StringVar(&config.Cvmtoken, "cvmtoken", "", "CVM token")
@@ -51,7 +51,9 @@ func ParseFlags(progname string, args []string, cfg *Config) (err error) {
 	flagSet.StringVar(&config.Idmtoken, "idmtoken", "", "IDM token")
 	flagSet.StringVar(&config.Idmaddress, "idmaddress", "", "IDM address")
 
-	err = flagSet.Parse(os.Args[1:])
+	err = flagSet.Parse(args)
+	//	fmt.Println("test")
+	//	fmt.Println(args)
 	if err != nil {
 		flagSet.PrintDefaults()
 		return fmt.Errorf("Please try again")
